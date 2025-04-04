@@ -1,10 +1,7 @@
-# configs.py 
 import argparse
-from constants import BASE_DIR
-# модуль для работы с логами,
 import logging
-# хендлер с ротацией логов.
 from logging.handlers import RotatingFileHandler
+from constants import BASE_DIR
 
 
 # Время записи – Уровень сообщения – Cообщение.
@@ -26,12 +23,6 @@ def configure_argument_parser(available_modes):
         action='store_true',
         help='Очистка кеша'
     )
-    # parser.add_argument(
-    #     '-p',
-    #     '--pretty',
-    #     action='store_true',
-    #     help='Вывод в формате PrettyTable'
-    # )
     parser.add_argument(
         '-o',
         '--output',

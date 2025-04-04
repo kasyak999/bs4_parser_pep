@@ -1,9 +1,12 @@
 import requests_cache
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
+from tqdm import tqdm
+from constants import BASE_DIR, MAIN_DOC_URL, PEP_URL, EXPECTED_STATUS
 
 
 PEP_URL = 'https://peps.python.org/'
+
 
 if __name__ == '__main__':
     session = requests_cache.CachedSession()
@@ -12,18 +15,30 @@ if __name__ == '__main__':
     response = session.get(PEP_URL)
     response.encoding = 'utf-8'
     soup = BeautifulSoup(response.text, features='lxml')
-    sidebar = soup.find_all(
+    sections = soup.find_all(
         'table', attrs={'class': 'pep-zero-table docutils align-default'})
-
-    for i in sidebar:
-        # print(i.prettify())
-        qwe = i.find_all('tr', attrs={'class': 'row-odd'})
-        # print(qwe)
-        for ii in qwe:
-            qwer = ii.find('a', attrs={'class': 'pep reference internal'})
-            if qwer:
-                # print(qwer['href'])
-                href = qwer['href']
+    results = [('Статус', 'Ссылка', 'PEP')]
+    status_list = dict()
+    for section in tqdm(sections):
+        tables = section.find_all('tr', attrs={'class': 'row-odd'})
+        for table in tables:
+            status = table.find('abbr')
+            peps = table.find('a', attrs={'class': 'pep reference internal'})
+            if peps:
+                href = peps['href']
                 version_link = urljoin(PEP_URL, href)
-                print(version_link, qwer.text)
-        print('---------------------------------------')
+                response = session.get(version_link)
+                response.encoding = 'utf-8'
+                soup = BeautifulSoup(response.text, features='lxml')
+                preview_status = status.text[1:]
+                status_pep = soup.find('abbr')
+                if status_pep.text in EXPECTED_STATUS[preview_status]:
+                    status_list[status_pep.text] = status_list.get(
+                        status_pep.text, 0) + 1
+                else:
+                    print('не совпадает')
+                # print(qwe.text, version_link)
+                # print(qwe)
+        # print('---------------------------------------')
+    print(status_list)
+    # print(status_list)
