@@ -15,7 +15,7 @@ def control_output(results, cli_args):
         # Вывод данных в файл csv. Саму функцию напишем позже.
         file_output(results, cli_args)
     else:
-        # Вывод по умолчанию. 
+        # Вывод по умолчанию.
         default_output(results)
 
 
@@ -48,10 +48,10 @@ def file_output(results, cli_args):
     parser_mode = cli_args.mode
     # Получаем текущие дату и время.
     now = dt.datetime.now()
-    # Сохраняем текущие дату-время в указанном формате. 
+    # Сохраняем текущие дату-время в указанном формате.
     # Результат будет выглядеть вот так: 2021-06-18_07-40-41.
     now_formatted = now.strftime(DATETIME_FORMAT)
-    # Собираем имя файла из полученных переменных: 
+    # Собираем имя файла из полученных переменных:
     # «режим работы программы» + «дата и время записи» + формат (.csv).
     file_name = f'{parser_mode}_{now_formatted}.csv'
     # Получаем абсолютный путь к файлу с результатами.
@@ -63,4 +63,4 @@ def file_output(results, cli_args):
         # Передаём в метод writerows список с результатами парсинга.
         writer.writerows(results)
 
-    logging.info(f'Файл с результатами был сохранён: {file_path}') 
+    logging.info(f'Файл с результатами был сохранён: {file_path}')
