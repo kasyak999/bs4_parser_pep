@@ -8,22 +8,26 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 from collections import defaultdict
 
-from constants import BASE_DIR, MAIN_DOC_URL, PEP_URL, EXPECTED_STATUS
+# from constants import BASE_DIR, MAIN_DOC_URL, PEP_URL, EXPECTED_STATUS
+import constants
 from configs import configure_argument_parser, configure_logging
 from outputs import control_output
 from utils import get_response, find_tag
 
 
 def whats_new(session: requests_cache.CachedSession):
-    whats_new_url = urljoin(MAIN_DOC_URL, 'whatsnew/')
+    """Что нового в Python"""
+    whats_new_url = urljoin(constants.MAIN_DOC_URL, constants.WHATSNEW_PATH)
     response = get_response(session, whats_new_url)
     if response is None:
         return
     soup = BeautifulSoup(response.text, features='lxml')
-    main_div = find_tag(soup, 'section', attrs={'id': 'what-s-new-in-python'})
-    div_with_ul = find_tag(main_div, 'div', attrs={'class': 'toctree-wrapper'})
+    main_div = find_tag(
+        soup, 'section', attrs={'id': constants.WHATSNEW_SECTION_ID})
+    div_with_ul = find_tag(
+        main_div, 'div', attrs={'class': constants.WHATSNEW_DIV_CLASS})
     sections_by_python = div_with_ul.find_all(
-        'li', attrs={'class': 'toctree-l1'})
+        'li', attrs={'class': constants.WHATSNEW_LI_CLASS})
     results = [('Ссылка на статью', 'Заголовок', 'Редактор, автор')]
     for section in tqdm(sections_by_python, desc="Загрузка из кеша"):
         version_a_tag = find_tag(section, 'a')
@@ -43,7 +47,7 @@ def whats_new(session: requests_cache.CachedSession):
 
 
 def latest_versions(session: requests_cache.CachedSession):
-    response = get_response(session, MAIN_DOC_URL)
+    response = get_response(session, constants.MAIN_DOC_URL)
     if response is None:
         return
     soup = BeautifulSoup(response.text, features='lxml')
@@ -69,7 +73,7 @@ def latest_versions(session: requests_cache.CachedSession):
 
 
 def download(session: requests_cache.CachedSession):
-    downloads_url = urljoin(MAIN_DOC_URL, 'download.html')
+    downloads_url = urljoin(constants.MAIN_DOC_URL, 'download.html')
     response = get_response(session, downloads_url)
     if response is None:
         return
@@ -80,7 +84,7 @@ def download(session: requests_cache.CachedSession):
     pdf_a4_link = pdf_a4_tag['href']
     archive_url = urljoin(downloads_url, pdf_a4_link)
     filename = archive_url.split('/')[-1]
-    downloads_dir = BASE_DIR / 'downloads'
+    downloads_dir = constants.BASE_DIR / 'downloads'
     downloads_dir.mkdir(exist_ok=True)
     archive_path = downloads_dir / filename
     response = session.get(archive_url)
@@ -90,20 +94,21 @@ def download(session: requests_cache.CachedSession):
 
 
 def pep(session: requests_cache.CachedSession):
-    response = get_response(session, PEP_URL)
+    response = get_response(session, constants.PEP_URL)
     if response is None:
         return
 
     soup = BeautifulSoup(response.text, features='lxml')
     sections = soup.find_all(
-        'table', attrs={'class': 'pep-zero-table docutils align-default'})
+        'table', attrs={'class': constants.PEP_TABLE_CLASS})
     results = [('Статус', 'Количество')]
     status_list = defaultdict(int)
     total = 0
     status_false = []
 
     for section in tqdm(sections):
-        tables = section.find_all('tr', attrs={'class': 'row-odd'})
+        tables = section.find_all(
+            'tr', attrs={'class': constants.PEP_TR_CLASS})
         for table in tables:
             status = table.find('abbr')
             if not status:
@@ -111,21 +116,23 @@ def pep(session: requests_cache.CachedSession):
 
             preview_status = status.text[1:]
             pep_link_tag = table.find(
-                'a', attrs={'class': 'pep reference internal'})
+                'a', attrs={'class': constants.PEP_A_CLASS})
             if not pep_link_tag:
                 continue
 
-            version_link = urljoin(PEP_URL, pep_link_tag['href'])
+            version_link = urljoin(constants.PEP_URL, pep_link_tag['href'])
             response = get_response(session, version_link)
             soup = BeautifulSoup(response.text, features='lxml')
             status_pep = find_tag(soup, 'abbr')
 
-            if status_pep.text in EXPECTED_STATUS.get(preview_status):
+            if status_pep.text in constants.EXPECTED_STATUS.get(
+                preview_status
+            ):
                 status_list[status_pep.text] += 1
             else:
                 status_false.append((
                     version_link, status_pep.text,
-                    EXPECTED_STATUS.get(preview_status)))
+                    constants.EXPECTED_STATUS.get(preview_status)))
 
             total += 1
 
